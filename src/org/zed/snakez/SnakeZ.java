@@ -1,65 +1,135 @@
 package org.zed.snakez;
 
-import org.jline.jansi.Ansi;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.jline.jansi.Ansi.*;
-import org.jline.utils.InfoCmp;
-import org.jline.utils.NonBlockingReader;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import javax.swing.*;
+import org.jline.jansi.Ansi;
+import org.jline.jansi.Ansi.*;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp;
+import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.NonBlockingReader;
 
 public class SnakeZ {
-    static int termWidth;
-    static int termHeight;
 
     public static void main(String[] args) throws IOException {
         Terminal terminal = TerminalBuilder.builder().build();
         terminal.puts(InfoCmp.Capability.clear_screen);
         terminal.enterRawMode();
-        termWidth = terminal.getWidth();
-        termHeight = terminal.getHeight();
-        Snake snake = new Snake(termWidth, termHeight);
+        int termWidth = terminal.getWidth();
+        int termHeight = terminal.getHeight();
+        Snake snake = new Snake(termHeight, termWidth);
         terminal.puts(InfoCmp.Capability.cursor_invisible);
-        for (int i = 1; i < termWidth; i++) {
-            for (int j = 0; j < termHeight; j++) {
-                terminal.puts(InfoCmp.Capability.cursor_address, i, j);
-                System.out.print(" ");
-            }
-        }
+        int foodX = new Random().nextInt(termHeight) + 1;
+        int foodY = new Random().nextInt(termWidth) + 1;
+        terminal.puts(InfoCmp.Capability.cursor_address, foodX, foodY);
+        terminal.flush();
+        System.out.print("⬤");
+        new Movement(terminal, snake).start();
+        snake.bits.getFirst().currX = termHeight / 2;
+        snake.bits.getFirst().currY = termWidth / 2;
+        int sleepBit = 0;
+        int sleepSnake = 150;
         while (true) {
-            for (Bit bit : snake.bits) {
-                int x = new Random().nextInt(termHeight) + 1;
-                int y = new Random().nextInt(termWidth) + 1;
-                terminal.puts(InfoCmp.Capability.cursor_address, x, y);
+            for (int i = 0; i < snake.bits.size(); i++) {
+                Bit bit = snake.bits.get(i);
+                if (i == 0) {
+                    bit.prevX = bit.currX;
+                    bit.prevY = bit.currY;
+                    switch (snake.move) {
+                        case UP -> bit.currX--;
+                        case DOWN -> bit.currX++;
+                        case LEFT -> bit.currY--;
+                        case RIGHT -> bit.currY++;
+                    }
+
+                } else {
+                    bit.prevX = bit.currX;
+                    bit.prevY = bit.currY;
+                    bit.currY = snake.bits.get(i - 1).prevY;
+                    bit.currX = snake.bits.get(i - 1).prevX;
+                }
+                if ((bit.currX >= termHeight || bit.currX <= 0) || (bit.currY >= termWidth || bit.currY <= 0)) {
+                    System.exit(0);
+                }
+                terminal.puts(InfoCmp.Capability.cursor_address, bit.currX, bit.currY);
                 terminal.flush();
-                System.out.print("0");
+                System.out.print("█");
+                bit = snake.bits.getFirst();
+                if (bit.currX == foodX && bit.currY == foodY) {
+                    foodX = new Random().nextInt(termHeight) + 1;
+                    foodY = new Random().nextInt(termWidth) + 1;
+                    terminal.puts(Capability.save_cursor);
+                    terminal.puts(InfoCmp.Capability.cursor_address, foodX, foodY);
+                    terminal.flush();
+                    System.out.print("⬤");
+                    terminal.puts(Capability.restore_cursor);
+                    snake.addBit();
+                    sleepSnake -= 5;
+                }
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(sleepBit);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                terminal.puts(InfoCmp.Capability.cursor_address, x, y);
-                terminal.flush();
-                System.out.print(" ");
+            }
+            try {
+                Thread.sleep(sleepSnake);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            Bit bit = snake.bits.getLast();
+            terminal.puts(InfoCmp.Capability.cursor_address, bit.currX, bit.currY);
+            terminal.flush();
+            System.out.print(" ");
+        }
+    }
+}
+
+
+class Movement extends Thread {
+
+    Terminal terminal;
+    Snake snake;
+
+    Movement(Terminal terminal, Snake snake) {
+        this.terminal = terminal;
+        this.snake = snake;
+    }
+
+    void move(int k) {
+        if (k == 87 || k == 119) {
+            snake.move = Move.UP;
+        } else if (k == 65 || k == 97) {
+            snake.move = Move.LEFT;
+        } else if (k == 83 || k == 115) {
+            snake.move = Move.DOWN;
+        } else if (k == 68 || k == 100) {
+            snake.move = Move.RIGHT;
+        }
+    }
+
+    public void run() {
+        NonBlockingReader keyReader;
+        while (true) {
+            keyReader = this.terminal.reader();
+            try {
+                int k = keyReader.read();
+                move(k);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
     }
 }
 
-class Input extends Thread {
-    public void run() {
-        NonBlockingReader keyReader;
-        try {
-            keyReader = TerminalBuilder.builder().build().reader();
-            System.out.println(keyReader.read());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+enum Move {
+    UP, DOWN, LEFT, RIGHT;
 }
 
 class Bit {
@@ -68,19 +138,20 @@ class Bit {
     int prevX;
     int prevY;
 
-    Bit(int x, int y) {
-        this.currX = x;
-        this.currY = y;
-    }
 }
 
 class Snake {
     ArrayList<Bit> bits = new ArrayList<>();
+    Move move;
 
     Snake(int termHeight, int termWidth) {
-        int x = new Random().nextInt(termHeight) + 1;
-        int y = new Random().nextInt(termWidth) + 1;
-        Bit bit = new Bit(x, y);
+        move = Move.values()[new Random().nextInt(Move.values().length)];
+        Bit bit = new Bit();
+        bits.add(bit);
+    }
+
+    void addBit() {
+        Bit bit = new Bit();
         bits.add(bit);
     }
 }
