@@ -1,9 +1,12 @@
 <component name="ArtifactManager">
-  <artifact type="jar" name="SnakeZ:jar">
+  <artifact name="SnakeZ:jar">
     <output-path>$PROJECT_DIR$/out/artifacts/SnakeZ_jar</output-path>
-    <root id="archive" name="SnakeZ.jar">
-      <element id="module-output" name="SnakeZ" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/lib/jline-3.25.0.jar" path-in-jar="/" />
+    <root id="root">
+      <element id="archive" name="SnakeZ.jar">
+        <element id="module-output" name="SnakeZ" />
+      </element>
+      <element id="library" level="project" name="jline" />
+      <element id="library" level="project" name="jline.terminal.jna" />
     </root>
   </artifact>
 </component>

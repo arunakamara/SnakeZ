@@ -2,13 +2,8 @@ package org.zed.snakez;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import javax.swing.*;
-import org.jline.jansi.Ansi;
-import org.jline.jansi.Ansi.*;
+
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
@@ -18,18 +13,18 @@ import org.jline.utils.NonBlockingReader;
 public class SnakeZ {
 
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
+        Terminal terminal = TerminalBuilder.builder().system(true).dumb(false).build();
         terminal.puts(InfoCmp.Capability.clear_screen);
         terminal.enterRawMode();
         int termWidth = terminal.getWidth();
         int termHeight = terminal.getHeight();
         Snake snake = new Snake(termHeight, termWidth);
         terminal.puts(InfoCmp.Capability.cursor_invisible);
-        int foodX = new Random().nextInt(termHeight) + 1;
-        int foodY = new Random().nextInt(termWidth) + 1;
+        int foodX = ThreadLocalRandom.current().nextInt(1, termHeight);
+        int foodY = ThreadLocalRandom.current().nextInt(1, termWidth);
         terminal.puts(InfoCmp.Capability.cursor_address, foodX, foodY);
         terminal.flush();
-        System.out.print("⬤");
+        System.out.printf("O");
         new Movement(terminal, snake).start();
         snake.bits.getFirst().currX = termHeight / 2;
         snake.bits.getFirst().currY = termWidth / 2;
@@ -62,12 +57,12 @@ public class SnakeZ {
                 System.out.print("█");
                 bit = snake.bits.getFirst();
                 if (bit.currX == foodX && bit.currY == foodY) {
-                    foodX = new Random().nextInt(termHeight) + 1;
-                    foodY = new Random().nextInt(termWidth) + 1;
+                    foodX = ThreadLocalRandom.current().nextInt(1, termHeight);
+                    foodY = ThreadLocalRandom.current().nextInt(1, termWidth);
                     terminal.puts(Capability.save_cursor);
                     terminal.puts(InfoCmp.Capability.cursor_address, foodX, foodY);
                     terminal.flush();
-                    System.out.print("⬤");
+                    System.out.print("o");
                     terminal.puts(Capability.restore_cursor);
                     snake.addBit();
                     sleepSnake -= 5;
@@ -90,7 +85,6 @@ public class SnakeZ {
         }
     }
 }
-
 
 class Movement extends Thread {
 
@@ -145,7 +139,7 @@ class Snake {
     Move move;
 
     Snake(int termHeight, int termWidth) {
-        move = Move.values()[new Random().nextInt(Move.values().length)];
+        move = Move.values()[ThreadLocalRandom.current().nextInt(Move.values().length)];
         Bit bit = new Bit();
         bits.add(bit);
     }

@@ -1,3 +1,5 @@
 Manifest-Version: 1.0
 Main-Class: org.zed.snakez.SnakeZ
+Class-Path: jline-3.25.0.jar jline-terminal-jna-3.25.0.jar jna-5.13.0.ja
+ r jline-terminal-3.25.0.jar jline-native-3.25.0.jar
 

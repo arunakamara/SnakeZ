@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="jline.terminal.jna" type="repository">
+    <properties maven-id="org.jline:jline-terminal-jna:3.25.0" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/jline-terminal-jna-3.25.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jna-5.13.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jline-terminal-3.25.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jline-native-3.25.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
